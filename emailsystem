@@ -1,0 +1,983 @@
+#include<stdio.h>
+#include<string.h>
+#include<stdlib.h>
+#include<time.h>
+#define max 30
+void usermenu(char inboxad[max],char sentad[max]);
+void displayinbox(char inboxad[max],char sentad[max]);
+void displaysent(char inboxad[max],char sentad[max]);
+
+/*
+	Declaration of signin structure
+*/			
+struct signin																	
+{
+	char firstname[max];
+	char lastname[max];
+	long int phn;															
+	char question[100];
+	char ans[max];
+	char username[max];
+	char password[max];
+};
+
+/*
+	Declaration of inbox structure
+*/			
+struct inbox																		
+{
+	char from[max];
+	char sub[max];
+	char txt[100];
+	char time[max];	
+};
+
+/*
+	Declaration of sent structure
+*/			
+struct sent																			
+{
+	char to[max];
+	char sub[max];
+	char txt[100];
+	char time[max];	
+};
+
+/*
+	Declaration of inbox_stack structure
+*/			
+struct inbox_stack																	
+{
+	char from[max];
+	char sub[max];
+	char txt[100];
+	char time[max];
+	struct inbox_stack *next;	
+};
+typedef struct inbox_stack *INBOX;
+
+/*
+	Declaration of sent_stack structure
+*/			
+struct sent_stack																	
+{
+	char to[max];
+	char sub[max];
+	char txt[100];
+	char time[max];	
+	struct sent_stack *next;
+};
+typedef struct sent_stack *SEND;
+
+/*
+	function:delay
+	functinality:dealys the cursor
+*/			
+
+void delay(unsigned int mseconds)												
+{
+    clock_t goal = mseconds + clock();
+    while (goal > clock());
+}
+
+
+/*
+	function:getnode_sent
+	functinality:creates a noode of SEND type
+*/			
+SEND getnode_sent()																
+{
+	SEND p=(SEND)malloc(sizeof(struct sent_stack));
+	p->next=NULL;
+	return p;
+}
+
+
+/*
+	function:getnode_inbox
+	functinality:creates 
+	/a* node of INBOX type
+*/			
+
+INBOX getnode_inbox()																
+{
+	INBOX p=(INBOX)malloc(sizeof(struct inbox_stack));
+	p->next=NULL;
+	return p;
+}
+
+
+/*
+	function:countusers
+	functinality:counts the number of files
+*/			
+int countusers()																	
+{
+	FILE *fs;
+	fs=fopen("emaillist.dat","r");
+	struct signin s;
+	int count=0;
+	while(fread(&s,sizeof(s),1,fs))
+	{
+		count=count+1;
+	}
+	fclose(fs);
+	return count;
+}
+
+
+/* 
+Function name: searchfile
+Functionality:checks whether entered username exists or not
+*/											
+int searchfile(char filename[max])																						
+{
+	struct signin s;
+	FILE *fs;
+	fs=fopen("emaillist.dat","r");
+	int i;
+    
+    while(fread(&s, sizeof(s), 1, fs))
+    {
+        if(strcmp(s.username,filename)==0)
+		{
+			fclose(fs);
+			return 1;
+		}
+    }
+    fclose(fs);
+    return 0;
+}
+
+
+/* 
+Function name: searchfilewithpassword
+Functionality:checks whether entered password is correct or not
+*/
+int searchfilewithpassword(char filename[max])										
+{
+	struct signin s;
+	FILE *fs;
+	char pass[max];
+	fs=fopen("emaillist.dat","r");
+	while(fread(&s,sizeof(s),1,fs))
+	{
+		
+		if(strcmp(s.username,filename)==0)
+		{
+			printf("\n             _____________\n PASSWORD :-|");
+			scanf("%s",pass);
+			if(strcmp(s.password,pass)==0){
+			fclose(fs);	
+			return 1;
+		}
+		}
+	}
+	fclose(fs);
+	return 0;
+}
+
+
+/* 
+Function name: countinbox
+Functionality:counts the number of mails present in the inbox 
+*/
+int countinbox(char filename[max])												
+{
+	struct inbox s;
+	int i=0;
+	FILE *fs;
+	fs=fopen(filename,"r");
+	while(fread(&s,sizeof(s),1,fs))
+	{
+		
+		i=i+1;
+		
+	}
+	fclose(fs);
+	return i;
+}
+
+
+/* 
+Function name: countsent
+Functionality: counts the number of mails present in sent items
+*/
+int countsent(char filename[max])													
+{
+	struct sent s;
+	int i=0;
+	FILE *fm;
+	fm=fopen(filename,"r");
+	while(fread(&s,sizeof(s),1,fm))
+	{
+		
+			i=i+1;
+	}
+	fclose(fm);
+	return i;
+}
+
+/* 
+Function name: lifo_inbox
+Functionality: the most recent mail recieved appears on the top of  inbox
+*/
+void lifo_inbox(char filename[max],struct inbox s1)								
+{
+	struct inbox s;
+	INBOX list=NULL,temp,p;	
+	FILE *fs,*fp;
+	fs=fopen(filename,"r");
+	p=getnode_inbox();
+	//printf("%p",p);
+	strcpy(p->from,s1.from);
+	strcpy(p->sub,s1.sub);
+	strcpy(p->txt,s1.txt);
+	strcpy(p->time,s1.time);
+	list=p;
+	while(fread(&s,sizeof(s),1,fs))
+	{
+		for(temp=list;temp->next!=NULL;temp=temp->next);
+			p=getnode_inbox();
+			strcpy(p->from,s.from);
+			strcpy(p->sub,s.sub);
+			strcpy(p->txt,s.txt);
+			strcpy(p->time,s.time);
+			temp->next=p;
+	}
+	fclose(fs);
+	fs=fopen(filename,"w");
+	for(temp=list;temp!=NULL;temp=temp->next)
+	{
+		strcpy(s.from,temp->from);
+		strcpy(s.sub,temp->sub);
+		strcpy(s.txt,temp->txt);
+		strcpy(s.time,temp->time);
+		fwrite(&s,sizeof(s),1,fs);
+	}
+	fclose(fs);
+}
+
+
+/* 
+Function name: lifo_sent
+Functionality: the most recent mail recieved appears on the top of sent items
+*/
+void lifo_sent(char filename[max],struct sent s1)									
+{
+	struct sent s;
+	SEND list=NULL,temp,p;	
+	FILE *fs,*fp;
+	fs=fopen(filename,"r");
+	p=getnode_sent();
+	strcpy(p->to,s1.to);
+	strcpy(p->sub,s1.sub);
+	strcpy(p->txt,s1.txt);
+	strcpy(p->time,s1.time);
+	list=p;
+	while(fread(&s,sizeof(s),1,fs))
+	{
+		for(temp=list;temp->next!=NULL;temp=temp->next);
+			p=getnode_sent();
+			strcpy(p->to,s.to);
+			strcpy(p->sub,s.sub);
+			strcpy(p->txt,s.txt);
+			strcpy(p->time,s.time);
+			temp->next=p;
+	}
+	fclose(fs);
+	fs=fopen(filename,"w");
+	for(temp=list;temp!=NULL;temp=temp->next)
+	{
+		strcpy(s.to,temp->to);
+		strcpy(s.sub,temp->sub);
+		strcpy(s.txt,temp->txt);
+		strcpy(s.time,temp->time);
+		fwrite(&s,sizeof(s),1,fs);
+	}
+	fclose(fs);
+	
+}
+
+
+/* 
+Function name: deleteuser
+Functionality: deletes the user profile
+*/
+void deleteuser(char username[max],char pass[max])									
+	
+{
+	struct signin s;
+	FILE *fp,*fs;
+	int i,k,rem,fpc,fsc;
+	char temp[max]="temp.dat";
+	char elist[max]="emaillist.dat";
+	fp=fopen("temp.dat","w");
+	fs=fopen("emaillist.dat","r");
+	while(fread(&s,sizeof(s),1,fs))
+		{
+			k=strcmp(s.username,username);
+			if(strcmp(s.username,username))
+			{
+			fwrite(&s,sizeof(s),1,fp);
+			}
+		}
+		strcpy(s.username,username);
+		strcpy(s.password,pass);
+		fwrite(&s,sizeof(s),1,fp);
+		fclose(fp);
+		fclose(fs);		
+		remove("emaillist.dat");
+		rename("temp.dat","emaillist.dat");
+		delay(2000);
+		
+}
+
+
+/* 
+Function name: delcin
+Functionality: deletes the selected mail in inbox
+*/
+void delcin(char filename[max],int pos)												//Delete the mail in inboxs
+{
+	struct inbox s;
+	FILE *fp,*fs;
+	int k=1;
+	fp=fopen("temp.dat","w");
+	fs=fopen(filename,"r");
+	while(fread(&s,sizeof(s),1,fs))
+		{
+			if(k!=pos)
+			{
+			fwrite(&s,sizeof(s),1,fp);
+			}
+			k=k+1;
+		}
+		fclose(fp);
+		fclose(fs);
+		remove(filename);
+		rename("temp.dat",filename);	
+		printf("\nSUCCESSFULLY DELETED!!!!");
+		delay(2000);	
+}
+
+/* 
+Function name: delcin
+Functionality: deletes the selected mail in sent items
+*/
+void delcsent(char filename[max],int pos)
+{
+	struct sent s;
+	FILE *fp,*fs;
+	int k=1;
+	fs=fopen("temp.dat","w");
+	fp=fopen(filename,"r");
+	while(fread(&s,sizeof(s),1,fp))
+		{
+			if(k<pos || k>pos)
+			{
+			fwrite(&s,sizeof(s),1,fs);
+			}
+			k=k+1;
+		}
+		fclose(fp);
+		fclose(fs);
+		remove(filename);
+		rename("temp.dat",filename);
+		printf("\nSUCCESSFULLY DELETED!!!!");
+		delay(2000);	
+		
+}
+
+
+/* 
+Function name: forward
+Functionality:  forward opened mail
+*/
+void forward(char to_be_sent_to[max],char txt_to_be_sent[1000],char self[max])		//the to_be_sent_to should be in inbox.txt
+{
+	struct inbox s;
+	struct sent t;
+	int i;
+	system("@cls||clear");
+	i=searchfile(to_be_sent_to);		//search compose mail
+	if(i==1)
+	{
+		printf("ENTER THE SUBJECT OF THE TXT:- ");
+        getchar();
+		gets(s.sub);
+        strcpy(t.sub,s.sub);
+        strcpy(s.txt,txt_to_be_sent);
+        strcpy(t.txt,txt_to_be_sent);
+        strcpy(s.from,self);
+        strcpy(t.to,to_be_sent_to);
+        time_t rawtime;
+	   struct tm *info;
+	   char buffer[80];
+	   time( &rawtime );
+	   info = localtime( &rawtime );
+        strcpy(s.time,asctime(info));
+        strcpy(t.time,asctime(info));
+		lifo_inbox(to_be_sent_to,s);
+		lifo_sent(self,t);
+		system("@cls||clear");
+        printf("\n SENDING MAIL PLEASE WAIT.......... ");
+        delay(2000);
+        system("@cls||clear");
+		printf("\n MAIL HAS BEEN SENT SUCCESSFULLY \n");		
+		delay(2000);
+	}
+	else
+	printf("\nUSER DOES NOT EXIST!!!");
+}
+
+/* 
+Function name: compose
+Functionality: compose the mail and send it
+*/
+void compose(char filename[max],char self[max])										//self is in sent.txt and filename is in inbox.txt
+{
+	
+	int i;
+	struct inbox s;
+	struct sent to;
+	//system("@cls||clear");
+	i=searchfile(filename);		//search compose mail
+	if(i==1)
+	{
+		printf(" SUBJECT OF MAIL:- ");
+        getchar();
+		gets(s.sub);
+        strcpy(to.sub,s.sub);
+        printf("\nENTER THE TXT HERE:-");
+        getchar();
+		gets(s.txt);
+        strcpy(to.txt,s.txt);
+        strcpy(s.from,self);
+        strcpy(to.to,filename);
+    	time_t rawtime;
+	   	struct tm *info;
+	   	char buffer[80];
+		time( &rawtime );
+	   	info = localtime( &rawtime );
+    	strcpy(s.time,asctime(info));
+        strcpy(to.time,asctime(info));
+        lifo_inbox(filename,s);
+        lifo_sent(self,to);
+        system("@cls||clear");
+        printf("\n SENDING MAIL PLEASE WAIT....... ");
+        delay(3000);
+        system("@cls||clear");
+		printf("\n MAIL HAS BEEN SENT SUCCESSFULLY \n");
+		getch();		
+	}
+	else
+	printf("THE USER DOES NOT EXIST!!!!!!");
+}
+
+/* 
+Function name: passchange
+Functionality: changes the password of user
+*/
+void passchange(char inboxad[max])
+{
+	FILE *fs;
+	char pass[max],Npass[max],Npass1[max];
+	struct signin s;
+	fs=fopen("emaillist.dat","r");
+	while(fread(&s,sizeof(s),1,fs))
+	{
+		if(strcmp(s.username,inboxad)==0)
+		{
+			printf("\n ENTER OLD PASSWORDN:-");
+			scanf("%s",pass);
+			if(strcmp(s.password,pass)==0)
+			{
+				printf("\n ENTER NEW PASSWORD:-");
+				scanf("%s",Npass);
+				printf("\n ENTER NEW PASSWORD AGAIN :-");
+				scanf("%s",Npass1);
+				if(strcmp(Npass,Npass1)==0)
+				{
+					fclose(fs);
+					deleteuser(s.username,Npass);
+					printf("\n PASSWORD SUCCESSFULLY CHANGED  ");
+					delay(2000);
+					break;
+				}
+				else
+				{
+				printf("\n NEW PASSWORD DO NOT MATCH TO ONE ANOTHER!!!!!!!! ");
+				fclose(fs);
+				}
+				
+			}
+			else
+			{
+			printf("\n PASSWORD DO NOT MATCH!!!!!!!! ");
+			fclose(fs);
+			}
+		}
+	}
+	
+	fclose(fs);
+}
+
+/* 
+Function name: displayinbox
+Functionality: displays all recieved mails present in inbox
+*/
+void displayinbox(char filename[max],char sentad[max])								//should recive inbox.txt file only
+{
+	struct inbox s,in,in2;
+	int i=0,j,k=1,inboxchoice,txtchoice,test;
+	char user[max];
+	FILE *fs,*fp,*dummy,*temp;
+	system("@cls||clear");
+	j=countinbox(filename);
+	if(j!=0)
+	{
+		fs=fopen(filename,"r");
+		printf("\n     FROM                SUBJECT                     DETAILS\n     ----                -------                     -------\n");
+		while(fread(&s,sizeof(s),1,fs))
+		{
+			
+			printf("\n%d. %s\t %s\t\t\t      %s\n",i+1,s.from,s.sub,s.time);
+			i=i+1;
+		}
+		fclose(fs);
+		getchar();
+		printf("\n \n ENTER SERIAL NUMBER OF THE MESSAGE :-");
+		test=scanf("%d",&inboxchoice);
+		system("@cls||clear");
+		if(inboxchoice>0 && inboxchoice<=j && test==1)
+		{
+		fp=fopen(filename,"r");
+		while(fread(&in,sizeof(in),1,fp) && k<inboxchoice)
+		k=k+1;
+		printf("\nFROM:-%s\nSUBJECT:-%s\nDETAILS:-%s\nTXT:-%s\n",in.from,in.sub,in.time,in.txt);
+		fclose(fp);
+		printf("\nENTER YOUR CHOICE\n1->DELETE THE MESSAGE\n2->FORWARD THE MESSAGE\n3->GO BACK TO INBOX\n4->GO BACK TO MAIN MENU:-");
+		scanf("%d",&txtchoice);
+		system("@cls||clear");
+		switch(txtchoice)
+		{
+			case 1:	fclose(fs);
+					delcin(filename,inboxchoice);
+					usermenu(filename,sentad);
+					break;
+			case 2:	fclose(fs);
+					printf("\n ENTER THE USERNAME:-");
+					scanf("%s",user);
+					strcat(user,"inbox.dat");
+					forward(user,in.txt,sentad);
+					usermenu(filename,sentad);
+					break;
+			case 3:	fclose(fs);
+					displayinbox(filename,sentad);
+					break;
+			case 4:	fclose(fs);
+					usermenu(filename,sentad);
+					break;
+			default:printf("INVALID CHOICE!!!!");
+					delay(2000);
+					system("@cls||clear");
+					displayinbox(filename,sentad);
+		}
+		}
+		else
+		{
+			if(test==0)
+			{
+				printf("\nPLEASE ENTER A NUMBER NOT ANY ALPHABET OR SYMBOL");
+				getch();
+				displayinbox(filename,sentad);
+			}
+			else
+			{
+			if(inboxchoice==0)
+			usermenu(filename,sentad);
+			else{
+			
+			printf("\n NO SUCH MESSAGES WITH THAT SERIAL NUMBER FOUND!!!");
+			getch();
+			displayinbox(filename,sentad);}
+			}
+		}
+		}
+		else
+		{
+			printf("INBOX IS EMPTY!!!!!!!!!");
+			getch();
+			usermenu(filename,sentad);
+		}
+}
+
+
+/* 
+Function name: displayuserprofile
+Functionality: displays the details of user like first name,last name etc..
+*/
+void displayuserprofile(char inboxad[max])
+{
+	struct signin s;
+	FILE *fs;
+	fs=fopen("emaillist.dat","r");
+	while(fread(&s,sizeof(s),1,fs))
+	{
+		if(strcmp(s.username,inboxad)==0)
+		{
+			printf("\nNAME:-%s  %s",s.firstname,s.lastname);
+			printf("\nCONTACT NUMBER:-%ld",s.phn);					//problem facing
+			printf("\nYOUR SECREAT QUESTION :-%s",s.question);		
+			printf("\nYOUR SECREAT QUESTION'S ANSWER  :-%s",s.ans);
+		}
+	}
+	fclose(fs);
+}
+
+
+/* 
+Function name: displaysent
+Functionality: displays all send mails present in sent items
+*/
+void displaysent(char inboxad[max],char sentad[max])		//should recive sent.txt file only
+{
+	struct sent s,s2;
+	int i=0,j,sentchoice,txtchoice,k=1,test;
+	FILE *fs,*fp,*dummy,*temp;
+	char user[max];
+	system("@cls||clear");
+	j=countsent(sentad);
+	if(j!=0)
+	{
+	fs=fopen(sentad,"r");
+	printf("\n        TO        SUBJECT                DETAILS\n        ----        -------                -------\n");
+	while(fread(&s,sizeof(s),1,fs))
+	{
+		
+		printf("\n%d.\t%s\t%s\t\t%s\n",i+1,s.to,s.sub,s.time);
+			i=i+1;
+	}
+	fclose(fs);
+	getchar();
+	
+	
+	printf("\n \n ENTER THE SERIAL NUMBER OF THE MESSAGE:-");
+					test=scanf("%d",&sentchoice);
+					if(sentchoice<=j && sentchoice>0 && test==1)
+					{
+					fs=fopen(sentad,"r");
+					while(fread(&s,sizeof(s),1,fs) && k<sentchoice)
+					k=k+1;
+					fclose(fs);
+					printf("\nTO: %s\nSUB: %s\nDETAILS:-%s\nTXT:-%s\n",s.to,s.sub,s.time,s.txt);
+					printf("\nENTER YOUR CHOICE\n1->DELETE THE MESSAGE\n2->FORWARD THE MESSAGE\n3->GO BACK TO INBOX\n4->GO BACK TO MAIN MENU:-");
+					scanf("%d",&txtchoice);
+					switch(txtchoice)
+					{
+						case 1:	delcsent(sentad,sentchoice);
+								usermenu(inboxad,sentad);
+								break;
+						case 2:	printf("\n ENTER THE USERNAME:-");
+								scanf("%s",user);
+								strcat(user,"inbox.dat");
+								forward(user,s.txt,sentad);
+								usermenu(inboxad,sentad);
+								break;
+						case 3:	displaysent(inboxad,sentad);
+								break;
+						case 4:	usermenu(inboxad,sentad);
+								break;
+						default:fclose(fs);
+								printf("INVALID OPTION !!!!");
+								delay(2000);
+								system("@cls||clear");
+								displaysent(inboxad,sentad);
+						}
+					}
+					else
+					{
+						if(test==0)
+						{
+							printf("\nENTER A NUMBER NOT A ALPHABET");
+							getch();
+							displaysent(inboxad,sentad);
+						}
+						else
+						{
+						printf("\n NO SUCH MESSAGES WITH THAT SERIAL NUMBER FOUND!!!");
+						getch();
+						displaysent(inboxad,sentad);
+						}
+					}
+}
+else
+{
+	printf("THERE ARE NO SENT ITEMS!!!!!!");
+	getch();
+	usermenu(inboxad,sentad);
+}
+}
+
+
+/* 
+Function name: usermenu
+Functionality: displays the usermenu which contains the options like enter to inbox, enter to sent items,change password etc..  
+*/
+void usermenu(char inboxad[max],char sentad[max])
+{
+	int txtchoice,inboxchoice,userchoice,i;
+	char user[max];
+	system("@cls||clear");
+	printf("\n USER SUCCESSFULLY LOGED IN\n1->ENTER TO INBOX\n2->ENTER TO SENT ITEMS\n3->COMPOSE A MAIL\n4->CHANGE PASSWORD\n5->DISPLAY USER PROFILE\n6->SIGNOUT\nENTER YOUR OPTIONS:- ");
+	scanf("%d",&userchoice);
+	system("@cls||clear");
+	FILE *fp,*dummy,*temp;
+	struct inbox in,in2;
+	switch(userchoice)
+		{	
+			case 1:	displayinbox(inboxad,sentad);
+					delay(1000);
+					break;
+			case 2:	displaysent(inboxad,sentad);
+					delay(1000);
+					break;
+			case 3:	printf("\n TO\t\t:- ");
+					scanf("%s",user);
+					strcat(user,"inbox.dat");
+					compose(user,sentad);
+					usermenu(inboxad,sentad);
+					break;
+			case 4: passchange(inboxad);
+					usermenu(inboxad,sentad);
+					break;
+			case 5:	displayuserprofile(inboxad);
+					getch();
+					usermenu(inboxad,sentad);
+					break;
+			case 6: printf("\n LOGGING OFF PLEASE WAIT ....");
+					delay(2000);
+					system("@cls||clear");
+					printf("\n SUCCESSFULLY LOGGED OUT \n\n\n");
+					exit(0);
+			default:printf("\nINVALID OPTION");
+					getchar();
+					getch();
+					usermenu(inboxad,sentad);
+					
+}
+}
+
+
+/* 
+Function name: signup
+Functionality: creates new account with unique username. If we enter existing username,it will show an error message.
+*/
+void signup()
+{
+	char userinbox[max],usersent[max],pass[max],name[max],last[max],ans[max];
+	int i;
+	long int phn;
+	struct signin s;
+	char txt[10]="inbox.dat";
+	char senttxt[9]="sent.dat";
+	printf("\n ENTER USERNAME :-");
+	scanf("%s",userinbox);
+	strcpy(usersent,userinbox);
+	strcat(usersent,senttxt);
+	strcat(userinbox,txt);
+	i=searchfile(userinbox);
+	if(i==0)
+	{
+		FILE *fs;
+		fs=fopen("emaillist.dat","a");
+		strcpy(s.username,userinbox);
+		printf("\n ENTER YOUR FIRST NAME :-");
+		scanf("%s",name);
+		strcpy(s.firstname,name);
+		printf("\n ENTER YOUR LAST NAME :-");
+		scanf("%s",last);
+		strcpy(s.lastname,last);
+		printf("\n ENTER THE CONTACT NUMBER:-");
+		scanf("%ld",&phn);
+		s.phn=phn;
+		printf("\nSECREAT QUESTION:-");
+		getchar();
+		gets(s.question);
+		printf("\n ENTER THE ANSWER FOR THE SECREAT QUESTION:-");
+		scanf("%s",ans);
+		strcpy(s.ans,ans);
+		printf("\n PLEASE REMEMBER THE SECREAT ANSWER ");
+		printf("\n PASSWORD:-");
+		scanf("%s",pass);
+		strcpy(s.password,pass);
+		fwrite(&s,sizeof(s),1,fs);
+		fclose(fs);
+		fs=fopen(userinbox,"w");
+		fclose(fs);
+		fs=fopen(usersent,"w");
+		fclose(fs);
+		usermenu(userinbox,usersent);
+	}
+	else
+		printf("\n SORRY USER NAME ALREADY EXISTS!!!!");
+}
+
+
+/* 
+Function name: forgotpass
+Functionality: creates new password for the user 
+*/
+void forgotpass()
+{
+	long int phn;
+	int i;
+	FILE *fptr;
+	struct signin s;
+	char name[max],inboxad[max],sentad[max],last[max],user[max],Npass[max],Npass1[max],ans[max];
+	system("@cls||clear");
+	printf("\n ENTER YOUR USERNAME NAME :-");
+	scanf("%s",user);
+	strcpy(inboxad,user);
+	strcpy(sentad,user);
+	strcat(inboxad,"inbox.dat");
+	strcat(sentad,"sent.dat");
+	i=searchfile(inboxad);
+	if(i==1)
+	{	
+		fptr=fopen("emaillist.dat","r");
+		while(fread(&s, sizeof(s), 1, fptr))
+	    {
+    	    if(strcmp(s.username,inboxad)==0)
+			{
+				printf("\n ENTER YOUR FIRST NAME :-");
+				scanf("%s",name);
+				printf("\n ENTER YOUR LAST NAME :-");
+				scanf("%s",last);
+				printf("\n ENTER THE CONTACT NUMBER:-");
+				scanf("%ld",&phn);
+				printf("\nSECREAT QUESTION:-%s",s.question);
+				printf("\n ENTER THE ANSWER:-");
+				scanf("%s",ans);
+				if(strcmp(name,s.firstname)==0 && strcmp(last,s.lastname)==0 && strcmp(ans,s.ans)==0 && phn==s.phn)
+				{
+					printf("\n ENTER THE NEW PASSWORD :-");
+					scanf("%s",Npass);
+					printf("\n ENTER THE NEW PASSWORD AGAIN:-");
+					scanf("%s",Npass1);
+					if(strcmp(Npass,Npass1)==0)
+					{
+						fclose(fptr);
+						deleteuser(inboxad,Npass);
+						printf("ENTRY SUCCESS");
+						getch();
+						usermenu(inboxad,sentad);
+						break;
+					}
+					else
+					{
+						printf("\n NEW PASSWORDS DONT MATCH");
+						fclose(fptr);
+						
+					}
+					
+				}
+				else
+				{
+					printf("\n INVALID DETAILS\nUSER EXISTS WITH THAT NAME BUT THE DETAILS ARE NOT CORRECT \nPLEASE TRY AGAIN");
+					fclose(fptr);
+					delay(2000);
+					forgotpass();
+				}
+			}
+			else{
+				printf("\n NO SUCH USER EXIST IN OUR SYSTEM");
+				}
+			
+		}
+	}
+	else
+	printf("\n NO SUCH USER EXIST IN OUR SYSTEM");
+}
+
+
+/* 
+Function name: open
+Functionality: asks for username and password for login into the account
+*/
+void open()
+{
+	
+	int a,i;
+	char user[max],userinbox[max],pass[max],usersent[max];
+	char txt[10]="inbox.dat";
+	char senttxt[9]="sent.dat";
+	system("@cls||clear");
+	printf("\n             _____________\n USERNAME :-|");
+				scanf("%s",userinbox);
+				strcpy(usersent,userinbox);	 
+				strcat(userinbox,txt);
+				strcat(usersent,senttxt);
+				i=searchfilewithpassword(userinbox);
+				if(i==1)
+				{
+					system("@cls||clear");
+					printf("\n LOADING PLEASE WAIT....");
+					printf("\n          0%%");
+					delay(1000);
+					system("@cls||clear");
+					printf("\n LOADING PLEASE WAIT....");
+					printf("\n--        20%% --");
+					delay(1000);
+					system("@cls||clear");
+					printf("\n LOADING PLEASE WAIT....");
+					printf("\n----      40%% ----");
+					delay(1000);
+					system("@cls||clear");
+					printf("\n LOADING PLEASE WAIT....");
+					printf("\n------    60%% ------");
+					delay(1000);
+					system("@cls||clear");
+					printf("\n LOADING PLEASE WAIT....");
+					printf("\n--------  80%% --------");
+					delay(1000);
+					system("@cls||clear");
+					printf("\n LOADING PLEASE WAIT....");
+					printf("\n----------100%% ----------");
+					delay(1000);
+					system("@cls||clear");
+					printf("\n USER FOUND ");
+					usermenu(userinbox,usersent);
+				}
+				else
+				{
+					printf("\n\n\nNO SUCH USERS IN OUR SYSTEMS PLEASE SIGNUP IF YOU DONT HAVE AN ACCOUNT");
+					delay(2000);
+					open();
+				}
+}	
+
+
+void main()																//begining of main
+{
+	int a,i;
+	char user[max],userinbox[max],pass[max],usersent[max];
+	printf("\n\tHELLO USER WELCOME TO EMAIL SYSTEM\n\t--------------------------------\n1->SIGNIN\n2->SIGNUP\n3->FORGOT PASSWORD\n4->LEAVE SYSTEM\nENTER YOUR OPTION HERE:-");
+	scanf("%d",&a);
+	system("@cls||clear");
+	
+	switch(a)
+	{
+		case 1:	open();
+				break;
+		case 2:	signup();	
+				break;
+		case 3:	forgotpass();
+				break;
+		case 4:	exit(0);
+				break;
+		default :printf("\n\n INVALID CHOICE ");
+	}
+	
+}
